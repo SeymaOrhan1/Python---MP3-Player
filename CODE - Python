@@ -1,0 +1,215 @@
+
+CODE:
+
+from tkinter import*
+import pygame
+from tkinter import filedialog
+import time
+from mutagen.mp3 import MP3
+import tkinter.ttk as ttk
+
+
+root = Tk()
+root.title('Sony MP3 Player')
+root.iconbitmap('c:')
+root.geometry("500x450")
+
+#Initialize Pygame Mixer
+pygame.mixer.init()
+
+#Grab Song Length Time Info
+def play_time():
+    #Grab current song Elapsed Time
+    current_time=pygame.mixer.music.get_pos() /1000
+    #Converted to time format
+    converted_current_time= time.strftime('%M:%S', time.gmtime(current_time))
+
+    #Get Currently Playing Song
+    #current_song=song_box.curselection()
+    #Grab song title from playlist
+    song=song_box.get(ACTIVE)
+    #add directory structure and mp3 to song title
+    song=f'C:/Users/Intern/Desktop/musics/{song}.mp3'
+    #Get Song Length with mutagen
+    song_mut=MP3(song)
+    #Get Song Length
+    song_length=song_mut.info.length
+    #Convert to Time Format
+    converted_song_length= time.strftime('%M:%S', time.gmtime(song_length))
+
+
+    #Output Time to status bar
+    status_bar.config(text=f'Time Elapsed: {converted_current_time} of {converted_song_length}  ')
+    
+
+
+    #Update Time
+    status_bar.after(1000,play_time)
+
+
+
+
+#Add Song Function
+def add_song():
+    song = filedialog.askopenfilename(initialdir='C:/Users/Intern/Desktop/musics',title="Choose A Song",filetypes=(("mp3Files","*.mp3"),))
+    
+    #Strip out the directory info and .mp3 extension from the song name
+    
+    song=song.replace("C:/Users/Intern/Desktop/musics/","")
+    song=song.replace(".mp3","")
+
+    #Add song to listbox
+    song_box.insert(END,song)
+# Add Many Song The Playlist
+def add_many_song():
+    songs=filedialog.askopenfilenames(initialdir='C:/Users/Intern/Desktop/musics',title="Choose Many Songs",filetypes=(("mp3Files","*.mp3"),))
+    #Loop through song list and replace directory info and mp3
+    for song in songs:
+        song=song.replace("C:/Users/Intern/Desktop/musics/","")
+        song=song.replace(".mp3","")
+        #Insert into playlist
+        song_box.insert(END,song)
+
+
+#Play selected song
+def play():
+    song=song_box.get(ACTIVE)
+    song=f'C:/Users/Intern/Desktop/musics/{song}.mp3'
+
+    pygame.mixer.music.load(song)
+    pygame.mixer.music.play(loops=0)
+
+    #Call the play_time function to get song length
+    play_time()
+
+
+#Stop playing current song
+def stop():
+    pygame.mixer.music.stop()
+    song_box.selection_clear(ACTIVE)
+
+    #Clear The Status Bar
+    status_bar.config(text='')
+
+
+
+#Play The Next Song in the Playlist
+def next_song():
+    #Get the current song tuple number
+    next_one=song_box.curselection()
+    #Add one to the current song number
+    next_one=next_one[0]+1
+    #Grab song title from playlist
+    song=song_box.get(next_one)
+    #add directory structure and mp3 to song title
+    song=f'C:/Users/Intern/Desktop/musics/{song}.mp3'
+    #Load and play song
+    pygame.mixer.music.load(song)
+    pygame.mixer.music.play(loops=0)
+
+    #Clear active bar in playlist listbox
+    song_box.selection_clear(0,END)
+
+    #Activate new song bar
+    song_box.activate(next_one)
+
+    #Set Active Bar to Next Song
+    song_box.selection_set(next_one, last=None)
+
+#Delete A Song
+def delete_song():
+    #Delete Currently Selected Song
+    song_box.delete(ANCHOR)
+    #Stop Music if it's Playing
+    pygame.mixer.music.stop()
+
+
+#Delete All Songs from Playlist
+def delete_all_songs():
+    #Delete All Songs
+    song_box.delete(0, END)
+    #Stop Music if it's Playing
+    pygame.mixer.music.stop()
+  
+
+#Create Global Pause Variable
+global paused
+paused=False
+
+#Pause and Unpause The Current Song
+
+def pause(is_paused):
+    global paused
+    paused=is_paused
+    if paused:
+        #Unpause
+        pygame.mixer.music.unpause()
+        paused=False
+        
+    else:
+        #Pause
+        pygame.mixer.music.pause()
+        paused=True
+    
+    
+#Create Slider Function
+def slide(x):
+    pass
+#Create Playlist Box
+song_box=Listbox(root, bg="pink",fg="purple",width=60,selectbackground="white",selectforeground="green")
+song_box.pack(pady=20)
+
+#Define Player Control Buttons Images
+back_btn_img=PhotoImage(file='C:/Users/Intern/Desktop/back50.png')
+forward_btn_img =PhotoImage(file='C:/Users/Intern/Desktop/forward-next50.png')
+play_btn_img =PhotoImage(file='C:/Users/Intern/Desktop/play50.png')
+pause_btn_img =PhotoImage(file='C:/Users/Intern/Desktop/pause50.png')
+stop_btn_img =PhotoImage(file='C:/Users/Intern/Desktop/stop50.png')
+
+#Create Player Control Frame
+controls_frame=Frame(root)
+controls_frame.pack()
+
+#Create Player Control Buttons
+back_button=Button(controls_frame, image=back_btn_img,borderwidth=0)
+forward_button=Button(controls_frame, image=forward_btn_img,borderwidth=0,command=next_song)
+play_button=Button(controls_frame, image=play_btn_img,borderwidth=0,command=play)
+pause_button=Button(controls_frame, image=pause_btn_img,borderwidth=0,command=lambda:pause(paused))
+stop_button=Button(controls_frame, image=stop_btn_img,borderwidth=0,command=stop)
+
+
+back_button.grid(row=0,column=0,padx=3)                  
+forward_button.grid(row=0,column=4,padx=3)
+play_button.grid(row=0,column=2,padx=3)
+pause_button.grid(row=0,column=1,padx=3)
+stop_button.grid(row=0,column=3,padx=3)
+
+
+#Create Menu
+my_menu=Menu(root)
+root.config(menu=my_menu)
+
+#Add Add Song Menu
+add_song_menu=Menu(my_menu)
+my_menu.add_cascade(label="Add Songs",menu=add_song_menu)
+add_song_menu.add_command(label="Add One Song To Playlist",command=add_song )
+
+#Add Many Song to Playlist
+add_song_menu.add_command(label="Add Many Songs To Playlist",command=add_many_song)
+
+#Create Delete Song Menu
+remove_song_menu=Menu(my_menu)
+my_menu.add_cascade(label="Remove Songs",menu=remove_song_menu)
+remove_song_menu.add_command(label="Delete A Song From Playlist",command=delete_song)
+remove_song_menu.add_command(label="Delete All Songs From Playlist",command=delete_all_songs)
+
+#Create Status Bar
+status_bar=Label(root, text='', bd=1, relief=GROOVE, anchor=E)
+status_bar.pack(fill=X, side=BOTTOM, ipady=2)
+
+#Create Music Position Slider
+my_slider=ttk.Scale(root, from_=0, to=100, orient=HORIZONTAL, value=0,command=slide, length=360 )
+my_slider.pack(pady=20)
+
+root.mainloop()
+
